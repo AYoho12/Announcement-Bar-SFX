@@ -2,25 +2,19 @@ import { Version } from '@microsoft/sp-core-library';
 import {
   type IPropertyPaneConfiguration,
   PropertyPaneTextField,
-  PropertyPaneCheckbox,
   PropertyPaneDropdown,
-  PropertyPaneToggle,
   PropertyPaneSlider
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { escape } from '@microsoft/sp-lodash-subset';
 
 import styles from './AnnouncementBannerWebPart.module.scss';
-import * as strings from 'AnnouncementBannerWebPartStrings';
 
 export interface IAnnouncementBannerWebPartProps {
   alertTitle: string;
   alertDesc: string;
   colorChoice: string;
   scrollSpeed: number;
-
-  test1: boolean;
-  test3: boolean;
 }
 
 const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor: string }> = {
@@ -46,7 +40,6 @@ const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor:
 
 export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAnnouncementBannerWebPartProps> {
 
-
   public render(): void {
     const selectedColor = this.properties.colorChoice;
     const { lightcolor, darkcolor, fontcolor } = colors[selectedColor] || { lightcolor: 'transparent', darkcolor: 'transparent' };
@@ -63,8 +56,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
       </section>`;
   }
 
-
-
   protected get dataVersion(): Version {
     return Version.parse('1.0');
   }
@@ -73,12 +64,8 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     return {
       pages: [
         {
-          header: {
-            description: strings.PropertyPaneDescription
-          },
           groups: [
             {
-              groupName: strings.BasicGroupName,
               groupFields: [
               PropertyPaneTextField('alertTitle', {
                 label: 'Alert Title'
@@ -88,7 +75,7 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
                 multiline: true
               }),
               PropertyPaneDropdown('colorChoice', {
-                label: 'Dropdown',
+                label: 'Select a Color',
                 options: [
                   { key: 'darkred', text: 'Red' },
                   { key: '#FF9933', text: 'Orange' },
@@ -106,14 +93,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
                 max: 20,
                 value: 10,
                 showValue: true
-              }),
-              PropertyPaneCheckbox('test1', {
-                text: 'Checkbox'
-              }),
-              PropertyPaneToggle('test3', {
-                label: 'Toggle',
-                onText: 'On',
-                offText: 'Off'
               })
             ]
             }
