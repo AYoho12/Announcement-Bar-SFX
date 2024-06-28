@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "3fbde391-faa9-4fa5-b216-959aa80cab9c",
+  "alias": "AnnouncementBannerWebPart",
+  "componentType": "WebPart",
+
+
+  "version": "*",
+  "manifestVersion": 2,
+
+
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab", "SharePointFullPage"],
+  "supportsThemeVariants": true,
+
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70", 
+    "group": { "default": "Advanced" },
+    "title": { "default": "Announcement Banner" },
+    "description": { "default": "Announcement Banner description" },
+    "officeFabricIconFontName": "Page",
+    "properties": {
+      "alertTitle": "Alert",
+      "alertDesc": "This is a test alert",
+      "colorChoice": "darkred",
+      "scrollSpeed": 10,
+      "test1": true,
+
+      "test3": true
+    }
+  }]
+}

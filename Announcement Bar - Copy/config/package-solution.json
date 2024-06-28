@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "announcement-bar-client-side-solution",
+    "id": "9abece41-43e0-481b-a848-83c62695e279",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.18.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "announcement-bar description"
+      },
+      "longDescription": {
+        "default": "announcement-bar description"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "announcement-bar Feature",
+        "description": "The feature that activates elements of the announcement-bar solution.",
+        "id": "fef8809a-3824-4031-bec6-906656ebfe39",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/announcement-bar.sppkg"
+  }
+}

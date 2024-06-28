@@ -1,0 +1,77 @@
+@import '~@microsoft/sp-office-ui-fabric-core/dist/sass/SPFabricCore.scss';
+
+.announcementBanner {
+  overflow: hidden;
+  padding: 1em;
+  color: "[theme:bodyText, default: #323130]";
+  color: var(--bodyText);
+  &.teams {
+    font-family: $ms-font-family-fallbacks;
+  }
+}
+
+.welcome {
+  text-align: center;
+}
+
+.welcomeImage {
+  width: 100%;
+  max-width: 420px;
+}
+
+.links {
+  a {
+    text-decoration: none;
+    color: "[theme:link, default:#03787c]";
+    color: var(--link); // note: CSS Custom Properties support is limited to modern browsers only
+
+    &:hover {
+      text-decoration: underline;
+      color: "[theme:linkHovered, default: #014446]";
+      color: var(--linkHovered); // note: CSS Custom Properties support is limited to modern browsers only
+    }
+  }
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  font-size: 25px;
+}
+.dark-red {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  min-height: 50px;
+  max-height: 50px;
+  padding-left: 10px;
+  padding-right: 10px;
+  width: max-content;
+  text-align: center;
+  border-radius: 25px 0px 0px 25px;
+  font-weight: bold;
+  font-family: Arial;
+}
+.marquee {
+  min-height: 50px;
+  max-height: 50px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  border-radius: 0px 25px 25px 0px;
+  font-family: Helvetica;
+  --marquee-speed: 10s;
+}
+.marquee span {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee var(--marquee-speed) linear infinite;
+}
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
