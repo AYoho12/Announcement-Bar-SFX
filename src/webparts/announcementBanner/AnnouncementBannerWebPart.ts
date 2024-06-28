@@ -55,7 +55,7 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     this.domElement.innerHTML = `
       <section class="${styles.announcementBanner} ${!!this.context.sdks.microsoftTeams ? styles.teams : ''}">
         <div class="${styles.container}">
-          <div class="${styles['dark-red']}" style="background-color: ${escape(darkcolor)}; color: ${escape(fontcolor)};">${escape(this.properties.alertTitle)}</div>
+          <div class="${styles.alertMessage}" style="background-color: ${escape(darkcolor)}; color: ${escape(fontcolor)};">${escape(this.properties.alertTitle)}</div>
           <div class="${styles.marquee}" style="background-color: ${escape(lightcolor)}; color: ${escape(fontcolor)}; --marquee-speed: ${scrollSpeed}s;">
             <span>${escape(this.properties.alertDesc)}</span>
           </div>
