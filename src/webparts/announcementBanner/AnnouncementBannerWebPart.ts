@@ -54,22 +54,29 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     const selectedColor = this.properties.colorChoice;
     const { lightcolor, darkcolor, fontcolor } = colors[selectedColor] || { lightcolor: 'transparent', darkcolor: 'transparent' };
     const scrollSpeed = this.properties.scrollSpeed || 10;
-  
+
     let title = '';
     let description = '';
-  
+
     if (this.properties.useListContent && this.properties.selectedItem && this.properties.selectedList) {
-      const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).select("Title", "Description").get();
-      title = item.Title;
-      description = item.Description;
+        const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).select("Title", "Description", "startTime", "endTime").get();
+        const startTime = new Date(item.startTime);
+        const endTime = new Date(item.endTime);
+        const currentTime = new Date();
+
+        // Check if currentTime is between startTime and endTime, including time
+        if (currentTime.getTime() >= startTime.getTime() && currentTime.getTime() <= endTime.getTime()) {
+            title = item.Title;
+            description = item.Description;
+        }
     } else {
-      title = this.properties.alertTitle;
-      description = this.properties.alertDesc;
+        title = this.properties.alertTitle;
+        description = this.properties.alertDesc;
     }
-  
+
     // Check if the alert banner should be displayed
     const shouldDisplayBanner = title || description;
-  
+
     this.domElement.innerHTML = shouldDisplayBanner ? `
       <section class="${styles.announcementBanner} ${!!this.context.sdks.microsoftTeams ? styles.teams : ''}">
         <div class="${styles.container}">
@@ -79,7 +86,7 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
           </div>
         </div>
       </section>` : '';
-  }
+}
 
   protected async onInit(): Promise<void> {
     await super.onInit();
