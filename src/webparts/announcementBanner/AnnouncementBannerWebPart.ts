@@ -3,7 +3,8 @@ import {
   type IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneDropdown,
-  PropertyPaneSlider
+  PropertyPaneSlider,
+  PropertyPaneToggle
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { escape } from '@microsoft/sp-lodash-subset';
@@ -22,6 +23,8 @@ export interface IAnnouncementBannerWebPartProps {
   colorChoice: string;
   scrollSpeed: number;
   selectedList: string;
+  selectedItem: string;
+  useListContent: boolean;
 }
 
 const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor: string }> = {
@@ -47,98 +50,163 @@ const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor:
 
 export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAnnouncementBannerWebPartProps> {
 
-  public onInit(): Promise<void> {
-    return super.onInit().then(_ => {
-      sp.setup({
-        spfxContext: this.context as any // Use 'as any' to bypass type issues
-      });
-    });
-  }
-
   public async render(): Promise<void> {
     const selectedColor = this.properties.colorChoice;
     const { lightcolor, darkcolor, fontcolor } = colors[selectedColor] || { lightcolor: 'transparent', darkcolor: 'transparent' };
     const scrollSpeed = this.properties.scrollSpeed || 10;
   
-    let listItemsHtml = '';
-    if (this.properties.selectedList) {
-      const items = await sp.web.lists.getById(this.properties.selectedList).items.select("Title").get();
-      listItemsHtml = items.map(item => `<li>${escape(item.Title)}</li>`).join('');
+    let title = '';
+    let description = '';
+  
+    if (this.properties.useListContent && this.properties.selectedItem && this.properties.selectedList) {
+      const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).select("Title", "Description").get();
+      title = item.Title;
+      description = item.Description;
+    } else {
+      title = this.properties.alertTitle;
+      description = this.properties.alertDesc;
     }
   
-    this.domElement.innerHTML = `
+    // Check if the alert banner should be displayed
+    const shouldDisplayBanner = title || description;
+  
+    this.domElement.innerHTML = shouldDisplayBanner ? `
       <section class="${styles.announcementBanner} ${!!this.context.sdks.microsoftTeams ? styles.teams : ''}">
         <div class="${styles.container}">
-          <div class="${styles.alertMessage}" style="background-color: ${escape(darkcolor)}; color: ${escape(fontcolor)};">${escape(this.properties.alertTitle)}</div>
+          <div class="${styles.alertMessage}" style="background-color: ${escape(darkcolor)}; color: ${escape(fontcolor)};">${escape(title)}</div>
           <div class="${styles.marquee}" style="background-color: ${escape(lightcolor)}; color: ${escape(fontcolor)}; --marquee-speed: ${scrollSpeed}s;">
-            <span>${escape(this.properties.alertDesc)}</span>
+            <span>${escape(description)}</span>
           </div>
-          
         </div>
-        <ul>${listItemsHtml}</ul>
-      </section>`;
+      </section>` : '';
   }
-  
+
+  protected async onInit(): Promise<void> {
+    await super.onInit();
+    sp.setup({ spfxContext: this.context as any });
+  }
 
   protected get dataVersion(): Version {
     return Version.parse('1.0');
   }
 
-  protected async onPropertyPaneConfigurationStart(): Promise<void> {
-    // Fetch the lists from the current site excluding hidden lists
-    const lists = await sp.web.lists.filter("Hidden eq false").select("Title", "Id").get();
-    this.listOptions = lists.map(list => ({ key: list.Id, text: list.Title }));
-    this.context.propertyPane.refresh();
-    this.render();
-  }
-  
-  
-  protected listOptions: { key: string, text: string }[] = [];
+  protected itemOptions: { key: string | number, text: string }[] = [];
 
-  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
-    return {
-      pages: [
-        {
-          groups: [
-            {
-              groupFields: [
-                PropertyPaneTextField('alertTitle', {
-                  label: 'Alert Title'
-                }),
-                PropertyPaneTextField('alertDesc', {
-                  label: 'Enter a Description for your alert',
-                  multiline: true
-                }),
-                PropertyPaneDropdown('colorChoice', {
-                  label: 'Select a Color',
-                  options: [
-                    { key: 'darkred', text: 'Red' },
-                    { key: '#FF9933', text: 'Orange' },
-                    { key: '#E2DD00', text: 'Yellow' },
-                    { key: '#3B7D23', text: 'Green' },
-                    { key: '#0070C0', text: 'Blue' },
-                    { key: '#7030A0', text: 'Purple' },
-                    { key: '#D86ECC', text: 'Pink' },
-                    { key: '#000000', text: 'Black' },
-                    { key: '#686868', text: 'Grey' }
-                  ]
-                }),
-                PropertyPaneDropdown('selectedList', {
-                  label: 'Select a List',
-                  options: this.listOptions
-                }),
-                PropertyPaneSlider('scrollSpeed', {
-                  label: 'Scroll Speed',
-                  min: 1,
-                  max: 20,
-                  value: 10,
-                  showValue: true
-                })
-              ]
-            }
-          ]
-        }
-      ]
-    };
+  protected async onPropertyPaneFieldChanged(propertyPath: string, oldValue: any, newValue: any): Promise<void> {
+    if (propertyPath === 'selectedList' && newValue) {
+      const items = await sp.web.lists.getById(newValue).items.select("Title", "Id").get();
+      this.itemOptions = items.map(item => ({ key: item.Id, text: item.Title }));
+
+      // Reset the selectedItem when the selectedList changes
+      this.properties.selectedItem = '';
+  
+      // Refresh the property pane to update the items dropdown
+      this.context.propertyPane.refresh();
+    }
+    super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+    await this.render();
   }
+
+  protected async onPropertyPaneConfigurationStart(): Promise<void> {
+  const lists = await sp.web.lists.filter("Hidden eq false").select("Title", "Id").get();
+  this.listOptions = lists.map(list => ({ key: list.Id, text: list.Title }));
+
+  if (this.properties.selectedList) {
+    const items = await sp.web.lists.getById(this.properties.selectedList).items.select("Title", "Id").get();
+    this.itemOptions = items.map(item => ({ key: item.Id, text: item.Title }));
+  }
+
+  this.context.propertyPane.refresh();
+}
+
+protected listOptions: { key: string | number, text: string }[] = [];
+
+protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
+  const commonFields = [
+    PropertyPaneToggle('useListContent', {
+      label: 'Use Content from List',
+      onText: 'On',
+      offText: 'Off'
+    })
+  ];
+
+  const manualFields = [
+    PropertyPaneTextField('alertTitle', {
+      label: 'Alert Title'
+    }),
+    PropertyPaneTextField('alertDesc', {
+      label: 'Enter a Description for your alert',
+      multiline: true
+    }),
+    PropertyPaneDropdown('colorChoice', {
+      label: 'Select a Color',
+      options: [
+        { key: 'darkred', text: 'Red' },
+        { key: '#FF9933', text: 'Orange' },
+        { key: '#E2DD00', text: 'Yellow' },
+        { key: '#3B7D23', text: 'Green' },
+        { key: '#0070C0', text: 'Blue' },
+        { key: '#7030A0', text: 'Purple' },
+        { key: '#D86ECC', text: 'Pink' },
+        { key: '#000000', text: 'Black' },
+        { key: '#686868', text: 'Grey' }
+      ]
+    }),
+    PropertyPaneSlider('scrollSpeed', {
+      label: 'Scroll Speed',
+      min: 1,
+      max: 20,
+      value: 10,
+      showValue: true
+    })
+  ];
+
+  const listFields = [
+    PropertyPaneDropdown('selectedList', {
+      label: 'Select a List',
+      options: this.listOptions
+    }),
+    PropertyPaneDropdown('selectedItem', {
+      label: 'Select an Item',
+      options: this.itemOptions
+    }),
+    PropertyPaneDropdown('colorChoice', {
+      label: 'Select a Color',
+      options: [
+        { key: 'darkred', text: 'Red' },
+        { key: '#FF9933', text: 'Orange' },
+        { key: '#E2DD00', text: 'Yellow' },
+        { key: '#3B7D23', text: 'Green' },
+        { key: '#0070C0', text: 'Blue' },
+        { key: '#7030A0', text: 'Purple' },
+        { key: '#D86ECC', text: 'Pink' },
+        { key: '#000000', text: 'Black' },
+        { key: '#686868', text: 'Grey' }
+      ]
+    }),
+    PropertyPaneSlider('scrollSpeed', {
+      label: 'Scroll Speed',
+      min: 1,
+      max: 20,
+      value: 10,
+      showValue: true
+    })
+  ];
+
+  return {
+    pages: [
+      {
+        groups: [
+          {
+            groupFields: [
+              ...commonFields,
+              ...(this.properties.useListContent ? listFields : manualFields)
+            ]
+          }
+        ]
+      }
+    ]
+  };
+}
+
 }
