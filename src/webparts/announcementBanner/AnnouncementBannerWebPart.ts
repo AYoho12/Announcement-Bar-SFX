@@ -14,7 +14,6 @@ import "@pnp/sp/webs";
 import "@pnp/sp/lists";
 import "@pnp/sp/items";
 
-
 import styles from './AnnouncementBannerWebPart.module.scss';
 
 export interface IAnnouncementBannerWebPartProps {
@@ -25,7 +24,7 @@ export interface IAnnouncementBannerWebPartProps {
   selectedList: string;
   selectedItem: string;
   useListContent: boolean;
-  audienceTargeting: boolean;
+
 }
 
 const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor: string }> = {
@@ -66,18 +65,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     } else {
       title = this.properties.alertTitle;
       description = this.properties.alertDesc;
-    }
-
-    if(this.properties.audienceTargeting) {
-      const currentUserGroups = await sp.web.currentUser.groups.get();
-      const targetAudienceGroups = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).fieldValuesAsText.get();
-
-      const isInTargetAudience = currentUserGroups.some(group => targetAudienceGroups.includes(group.Title));
-
-      if (!isInTargetAudience) {
-        this.domElement.innerHTML = '';
-        return;
-      }
     }
   
     // Check if the alert banner should be displayed
@@ -138,11 +125,6 @@ protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
   const commonFields = [
     PropertyPaneToggle('useListContent', {
       label: 'Use Content from List',
-      onText: 'On',
-      offText: 'Off'
-    }),
-    PropertyPaneToggle('audienceTargetingEnabled', {
-      label: 'Enable Audience Targeting',
       onText: 'On',
       offText: 'Off'
     })
