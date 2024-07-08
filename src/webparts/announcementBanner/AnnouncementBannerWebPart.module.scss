@@ -82,13 +82,39 @@
 }
 
 .activeStatus {
-  color: rgb(0, 91, 0);
+  color: #196B24;
+  background-color: rgb(115, 202, 98);
+  font-weight: bold;
+  border-radius: 25px 25px 25px 25px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 8px;
+  width: max-content;
+  justify-content: center;
+  align-items: center;
 }
 
 .upcomingStatus {
-  color: rgb(184, 154, 3);
+  color: #163E64;
+  background-color: #83CBEB;
+  font-weight: bold;
+  border-radius: 25px 25px 25px 25px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 8px;
+  width: max-content;
+  justify-content: center;
+  align-items: center;
 }
-
 .expiredStatus {
-  color: rgb(91, 0, 0);
+  color: #9E0000;
+  background-color: #FFB3B3;
+  font-weight: bold;
+  border-radius: 25px 25px 25px 25px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 8px;
+  width: max-content;
+  justify-content: center;
+  align-items: center;
 }
