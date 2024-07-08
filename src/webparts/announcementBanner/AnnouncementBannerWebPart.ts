@@ -4,7 +4,8 @@ import {
   PropertyPaneTextField,
   PropertyPaneDropdown,
   PropertyPaneSlider,
-  PropertyPaneToggle
+  PropertyPaneToggle,
+  PropertyPaneLabel
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { escape } from '@microsoft/sp-lodash-subset';
@@ -24,7 +25,10 @@ export interface IAnnouncementBannerWebPartProps {
   selectedList: string;
   selectedItem: string;
   useListContent: boolean;
-
+  startTime: string;
+  endTime: string;
+  formattedStartTime: string;
+  formattedEndTime: string;
 }
 
 const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor: string }> = {
@@ -63,7 +67,7 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
         const startTime = new Date(item.startTime);
         const endTime = new Date(item.endTime);
         const currentTime = new Date();
-
+              
         // Check if currentTime is between startTime and endTime, including time
         if (currentTime.getTime() >= startTime.getTime() && currentTime.getTime() <= endTime.getTime()) {
             title = item.Title;
@@ -106,14 +110,30 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
 
       // Reset the selectedItem when the selectedList changes
       this.properties.selectedItem = '';
-  
+
       // Refresh the property pane to update the items dropdown
       this.context.propertyPane.refresh();
     }
-    super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
-    await this.render();
-  }
 
+    if (propertyPath === 'selectedItem' && newValue) {
+      const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(newValue).select("Title", "Description", "startTime", "endTime").get();
+      
+      // Convert SharePoint date strings to JavaScript Date objects
+      const startTime = new Date(item.startTime);
+      const endTime = new Date(item.endTime);
+
+      // Format dates as needed
+      this.properties.formattedStartTime = startTime.toLocaleString();
+      this.properties.formattedEndTime = endTime.toLocaleString();
+
+      // Refresh the property pane to update the displayed start and end times
+      this.context.propertyPane.refresh();
+    }
+
+    await this.render();
+    super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
+  }
+  
   protected async onPropertyPaneConfigurationStart(): Promise<void> {
   const lists = await sp.web.lists.filter("Hidden eq false").select("Title", "Id").get();
   this.listOptions = lists.map(list => ({ key: list.Id, text: list.Title }));
@@ -176,6 +196,12 @@ protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     PropertyPaneDropdown('selectedItem', {
       label: 'Select an Item',
       options: this.itemOptions
+    }),
+    PropertyPaneLabel('startTime', {
+      text: `Start Time: ${this.properties.formattedStartTime || 'N/A'}`
+    }),
+    PropertyPaneLabel('endTime', {
+      text: `End Time: ${this.properties.formattedEndTime || 'N/A'}`
     }),
     PropertyPaneDropdown('colorChoice', {
       label: 'Select a Color',
