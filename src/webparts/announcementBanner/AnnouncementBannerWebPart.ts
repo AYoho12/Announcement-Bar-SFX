@@ -165,7 +165,7 @@ protected listOptions: { key: string | number, text: string }[] = [];
 private renderLabelField(propertyName: keyof IAnnouncementBannerWebPartProps): any {
   const { alertStatus } = this.properties;
 
-  let status: any = {
+  const status: any = {
     text: `${this.properties[propertyName] || 'N/A'}`
   };
 
