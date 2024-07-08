@@ -213,10 +213,7 @@ protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     PropertyPaneLabel('endTime', {
       text: `End Time: ${this.properties.formattedEndTime || 'N/A'}`
     }),
-    PropertyPaneLabel('alertStatus', {
-      text: `Alert Status: ${this.properties.alertStatus || 'N/A'}`,
-      
-    }),
+    this.renderLabelField('alertStatus'),
     PropertyPaneDropdown('colorChoice', {
       label: 'Select a Color',
       options: [
@@ -256,4 +253,32 @@ protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
   };
 }
 
+private renderLabelField(propertyName: keyof IAnnouncementBannerWebPartProps): any {
+  const { alertStatus } = this.properties;
+
+  let labelProps: any = {
+    text: `${propertyName.charAt(0).toUpperCase() + propertyName.slice(1).replace(/([A-Z])/g, ' $1').trim()}: ${this.properties[propertyName] || 'N/A'}`
+  };
+
+  if (propertyName === 'alertStatus') {
+    switch (alertStatus) {
+      case 'Active':
+        labelProps.className = styles.activeStatus;
+        break;
+      case 'Upcoming':
+        labelProps.className = styles.upcomingStatus;
+        break;
+      case 'Expired':
+        labelProps.className = styles.expiredStatus;
+        break;
+      default:
+        break;
+    }
+  }
+
+  return PropertyPaneLabel(propertyName, labelProps);
 }
+
+}
+
+
