@@ -135,7 +135,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
         this.properties.alertStatus = 'Active';
       } else {
         this.properties.alertStatus = 'Expired';
-
       }
       // Refresh the property pane to update the displayed start and end times
       this.context.propertyPane.refresh();
