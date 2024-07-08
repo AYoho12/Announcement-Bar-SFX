@@ -80,3 +80,15 @@
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
+
+.activeStatus {
+  color: rgb(0, 91, 0);
+}
+
+.upcomingStatus {
+  color: rgb(184, 154, 3);
+}
+
+.expiredStatus {
+  color: rgb(91, 0, 0);
+}

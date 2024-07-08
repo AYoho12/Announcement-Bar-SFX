@@ -25,10 +25,10 @@ export interface IAnnouncementBannerWebPartProps {
   selectedList: string;
   selectedItem: string;
   useListContent: boolean;
-  startTime: string;
-  endTime: string;
   formattedStartTime: string;
   formattedEndTime: string;
+  alertStatus: string;
+  alertStatusColor: string;
 }
 
 const colors: Record<string, { lightcolor: string; darkcolor: string; fontcolor: string }> = {
@@ -110,6 +110,8 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
 
       // Reset the selectedItem when the selectedList changes
       this.properties.selectedItem = '';
+      this.properties.formattedStartTime = '';
+      this.properties.formattedEndTime = '';
 
       // Refresh the property pane to update the items dropdown
       this.context.propertyPane.refresh();
@@ -126,6 +128,15 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
       this.properties.formattedStartTime = startTime.toLocaleString();
       this.properties.formattedEndTime = endTime.toLocaleString();
 
+      const currentTime = new Date();
+      if (currentTime < startTime) {
+        this.properties.alertStatus = 'Upcoming';
+      } else if (currentTime >= startTime && currentTime <= endTime) {
+        this.properties.alertStatus = 'Active';
+      } else {
+        this.properties.alertStatus = 'Expired';
+
+      }
       // Refresh the property pane to update the displayed start and end times
       this.context.propertyPane.refresh();
     }
@@ -202,6 +213,10 @@ protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     }),
     PropertyPaneLabel('endTime', {
       text: `End Time: ${this.properties.formattedEndTime || 'N/A'}`
+    }),
+    PropertyPaneLabel('alertStatus', {
+      text: `Alert Status: ${this.properties.alertStatus || 'N/A'}`,
+      
     }),
     PropertyPaneDropdown('colorChoice', {
       label: 'Select a Color',
