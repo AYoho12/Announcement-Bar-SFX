@@ -58,7 +58,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     const selectedColor = this.properties.colorChoice;
     const { lightcolor, darkcolor, fontcolor } = colors[selectedColor] || { lightcolor: 'transparent', darkcolor: 'transparent' };
     const scrollSpeed = this.properties.scrollSpeed || 10;
-    console.log(`Rendering with alertStatus: ${this.properties.alertStatus}`);
 
     let title = '';
     let description = '';
@@ -145,7 +144,6 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
       // Refresh the property pane to update the displayed start and end times
       this.context.propertyPane.refresh();
     }
-    console.log(`Rendering with alertStatus: ${this.properties.alertStatus}`);
     await this.render();
     super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
   }
