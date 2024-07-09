@@ -9,7 +9,6 @@ import {
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { escape } from '@microsoft/sp-lodash-subset';
-
 import { sp } from "@pnp/sp/presets/all";
 import "@pnp/sp/webs";
 import "@pnp/sp/lists";
@@ -25,7 +24,6 @@ export interface IAnnouncementBannerWebPartProps {
   selectedList: string;
   selectedItem: string;
   useListContent: boolean;
-  formattedStartTime: string;
   formattedEndTime: string;
   alertStatus: string;
   alertStatusColor: string;
@@ -59,24 +57,23 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
     const { lightcolor, darkcolor, fontcolor } = colors[selectedColor] || { lightcolor: 'transparent', darkcolor: 'transparent' };
     const scrollSpeed = this.properties.scrollSpeed || 10;
 
-    let title = '';
-    let description = '';
+    let title = this.properties.alertTitle;
+    let description = this.properties.alertDesc;
 
     if (this.properties.useListContent && this.properties.selectedItem && this.properties.selectedList) {
-        const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).select("Title", "Description", "startTime", "endTime").get();
-        const startTime = new Date(item.startTime);
+        const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(parseInt(this.properties.selectedItem)).select("Title", "Description", "endTime").get();
         const endTime = new Date(item.endTime);
         const currentTime = new Date();
               
-        // Check if currentTime is between startTime and endTime, including time
-        if (currentTime.getTime() >= startTime.getTime() && currentTime.getTime() <= endTime.getTime()) {
+        // Check if currentTime is before endTime, including time
+        if (currentTime.getTime() <= endTime.getTime()) {
           title = item.Title;
           description = item.Description;
           this.properties.alertStatus = 'Active'; // Set alertStatus to Active
-      } else if (currentTime < startTime) {
-          this.properties.alertStatus = 'Upcoming'; // Set alertStatus to Upcoming
-      } else {
+      }  else {
           this.properties.alertStatus = 'Expired'; // Set alertStatus to Expired
+          this.properties.alertTitle = ''; // Clear alertTitle
+          this.properties.alertDesc = ''; // Clear alertDesc
       }
     } else {
         title = this.properties.alertTitle;
@@ -95,13 +92,40 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
           </div>
         </div>
       </section>` : '';
-}
+      
+  }
 
   protected async onInit(): Promise<void> {
     await super.onInit();
     sp.setup({ spfxContext: this.context as any });
+  
+    // Fetch list items and set initial state only if useListContent is true
+    if (this.properties.useListContent && this.properties.selectedList) {
+      const items: any[] = await sp.web.lists.getById(this.properties.selectedList).items.select("Title", "Id", "endTime").get();
+      
+      // Find the first active item or default to the first item
+      const currentTime = new Date();
+      let selectedItem = items.find((item: any) => {
+        const endTime = new Date(item.endTime);
+        return currentTime.getTime() <= endTime.getTime();
+      });
+  
+      if (selectedItem) {
+        this.properties.selectedItem = selectedItem.Id.toString();
+        const endTime = new Date(selectedItem.endTime);
+        this.properties.formattedEndTime = endTime.toLocaleString([], { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        this.properties.alertStatus = 'Active';
+        this.properties.alertTitle = ''; // Clear alertTitle
+        this.properties.alertDesc = ''; // Clear alertDesc
+      } else {
+        this.properties.selectedItem = '';
+        this.properties.alertStatus = 'Expired';
+        this.properties.alertTitle = ''; // Clear alertTitle
+        this.properties.alertDesc = ''; // Clear alertDesc
+      }
+    }
   }
-
+  
   protected get dataVersion(): Version {
     return Version.parse('1.0');
   }
@@ -110,40 +134,51 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
 
   protected async onPropertyPaneFieldChanged(propertyPath: string, oldValue: any, newValue: any): Promise<void> {
     if (propertyPath === 'selectedList' && newValue) {
-      const items = await sp.web.lists.getById(newValue).items.select("Title", "Id").get();
+      const items = await sp.web.lists.getById(newValue).items.select("Title", "Id", "endTime").get();
       this.itemOptions = items.map(item => ({ key: item.Id, text: item.Title }));
-
-      // Reset the selectedItem when the selectedList changes
-      this.properties.selectedItem = '';
-      this.properties.formattedStartTime = '';
-      this.properties.formattedEndTime = '';
-
+  
+      let selectedItem = null;
+  
+      for (const item of items) {
+        const endTime = new Date(item.endTime);
+        const currentTime = new Date();
+  
+        if (currentTime.getTime() <= endTime.getTime()) {
+          selectedItem = item;
+          break;
+        }
+      }
+  
+      if (selectedItem) {
+        this.properties.selectedItem = selectedItem.Id.toString();
+        const endTime = new Date(selectedItem.endTime);
+        this.properties.formattedEndTime = endTime.toLocaleString([], { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        this.properties.alertStatus = 'Active';
+      } else {
+        this.properties.selectedItem = items[0]?.Id.toString() || '';
+        this.properties.alertStatus = 'Expired';
+      }
+  
       // Refresh the property pane to update the items dropdown
       this.context.propertyPane.refresh();
     }
-
+  
     if (propertyPath === 'selectedItem' && newValue) {
-      const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(newValue).select("Title", "Description", "startTime", "endTime").get();
-      
-      // Convert SharePoint date strings to JavaScript Date objects
-      const startTime = new Date(item.startTime);
+      const item = await sp.web.lists.getById(this.properties.selectedList).items.getById(newValue).select("Title", "Description", "endTime").get();
       const endTime = new Date(item.endTime);
-
-      // Format dates as needed
-      this.properties.formattedStartTime = startTime.toLocaleString([], { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  
       this.properties.formattedEndTime = endTime.toLocaleString([], { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-
+  
       const currentTime = new Date();
-      if (currentTime.getTime() < startTime.getTime()) {
-        this.properties.alertStatus = 'Upcoming';
-      } else if (currentTime.getTime() >= startTime.getTime() && currentTime.getTime() <= endTime.getTime()) {
+      if (currentTime.getTime() <= endTime.getTime()) {
         this.properties.alertStatus = 'Active';
       } else {
         this.properties.alertStatus = 'Expired';
       }
-      // Refresh the property pane to update the displayed start and end times
+  
       this.context.propertyPane.refresh();
     }
+  
     await this.render();
     super.onPropertyPaneFieldChanged(propertyPath, oldValue, newValue);
   }
@@ -151,136 +186,155 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
   protected async onPropertyPaneConfigurationStart(): Promise<void> {
     const lists = await sp.web.lists.filter("Hidden eq false").select("Title", "Id").get();
     this.listOptions = lists.map(list => ({ key: list.Id, text: list.Title }));
-
+  
     if (this.properties.selectedList) {
-      const items = await sp.web.lists.getById(this.properties.selectedList).items.select("Title", "Id").get();
+      const items = await sp.web.lists.getById(this.properties.selectedList).items.select("Title", "Id", "endTime").get();
       this.itemOptions = items.map(item => ({ key: item.Id, text: item.Title }));
+  
+      let selectedItem = null;
+  
+      for (const item of items) {
+        const endTime = new Date(item.endTime);
+        const currentTime = new Date();
+  
+        if (currentTime.getTime() <= endTime.getTime()) {
+          selectedItem = item;
+          break;
+        }
+      }
+  
+      if (selectedItem) {
+        this.properties.selectedItem = selectedItem.Id.toString();
+        const endTime = new Date(selectedItem.endTime);
+        this.properties.formattedEndTime = endTime.toLocaleString([], { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        this.properties.alertStatus = 'Active';
+      } else {
+        this.properties.selectedItem = items[0]?.Id.toString() || '';
+        this.properties.alertStatus = 'Expired';
+      }
     }
-
+  
     this.context.propertyPane.refresh();
   }
 
-protected listOptions: { key: string | number, text: string }[] = [];
+  protected listOptions: { key: string | number, text: string }[] = [];
 
-private renderLabelField(propertyName: keyof IAnnouncementBannerWebPartProps): any {
-  const { alertStatus } = this.properties;
+  private renderLabelField(propertyName: keyof IAnnouncementBannerWebPartProps): any {
+    const { alertStatus } = this.properties;
 
-  const status: any = {
-    text: `${this.properties[propertyName] || 'N/A'}`
-  };
+    const status: any = {
+      text: `${this.properties[propertyName] || 'N/A'}`
+    };
 
-  if (propertyName === 'alertStatus') {
-    switch (alertStatus) {
-      case 'Active':
-        status.className = styles.activeStatus;
-        break;
-      case 'Upcoming':
-        status.className = styles.upcomingStatus;
-        break;
-      case 'Expired':
-        status.className = styles.expiredStatus;
-        break;
-      default:
-        break;
+    if (propertyName === 'alertStatus') {
+      switch (alertStatus) {
+        case 'Active':
+          status.className = styles.activeStatus;
+          break;
+        case 'Upcoming':
+          status.className = styles.upcomingStatus;
+          break;
+        case 'Expired':
+          status.className = styles.expiredStatus;
+          break;
+        default:
+          break;
+      }
     }
+
+    return PropertyPaneLabel(propertyName, status);
   }
 
-  return PropertyPaneLabel(propertyName, status);
-}
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
+    const commonFields = [
+      PropertyPaneToggle('useListContent', {
+        label: 'Use Content from List',
+        onText: 'On',
+        offText: 'Off'
+      })
+    ];
 
-protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
-  const commonFields = [
-    PropertyPaneToggle('useListContent', {
-      label: 'Use Content from List',
-      onText: 'On',
-      offText: 'Off'
-    })
-  ];
-
-  const manualFields = [
-    PropertyPaneTextField('alertTitle', {
-      label: 'Alert Title'
-    }),
-    PropertyPaneTextField('alertDesc', {
-      label: 'Enter a Description for your alert',
-      multiline: true
-    }),
-    PropertyPaneDropdown('colorChoice', {
-      label: 'Select a Color',
-      options: [
-        { key: 'darkred', text: 'Red' },
-        { key: '#FF9933', text: 'Orange' },
-        { key: '#E2DD00', text: 'Yellow' },
-        { key: '#3B7D23', text: 'Green' },
-        { key: '#0070C0', text: 'Blue' },
-        { key: '#7030A0', text: 'Purple' },
-        { key: '#D86ECC', text: 'Pink' },
-        { key: '#000000', text: 'Black' },
-        { key: '#686868', text: 'Grey' }
-      ]
-    }),
-    PropertyPaneSlider('scrollSpeed', {
-      label: 'Scroll Speed',
-      min: 1,
-      max: 20,
-      value: 10,
-      showValue: true
-    })
-  ];
-
-  const listFields = [
-    PropertyPaneDropdown('selectedList', {
-      label: 'Select a List',
-      options: this.listOptions
-    }),
-    PropertyPaneDropdown('selectedItem', {
-      label: 'Select an Item',
-      options: this.itemOptions
-    }),
-    PropertyPaneLabel('startTime', {
-      text: `Start Time: ${this.properties.formattedStartTime || 'N/A'}`
-    }),
-    PropertyPaneLabel('endTime', {
-      text: `End Time: ${this.properties.formattedEndTime || 'N/A'}`
-    }),
-    this.renderLabelField('alertStatus'),
-    PropertyPaneDropdown('colorChoice', {
-      label: 'Select a Color',
-      options: [
-        { key: 'darkred', text: 'Red' },
-        { key: '#FF9933', text: 'Orange' },
-        { key: '#E2DD00', text: 'Yellow' },
-        { key: '#3B7D23', text: 'Green' },
-        { key: '#0070C0', text: 'Blue' },
-        { key: '#7030A0', text: 'Purple' },
-        { key: '#D86ECC', text: 'Pink' },
-        { key: '#000000', text: 'Black' },
-        { key: '#686868', text: 'Grey' }
-      ]
-    }),
-    PropertyPaneSlider('scrollSpeed', {
-      label: 'Scroll Speed',
-      min: 1,
-      max: 20,
-      value: 10,
-      showValue: true
-    })
-  ];
-
-  return {
-    pages: [
-      {
-        groups: [
-          {
-            groupFields: [
-              ...commonFields,
-              ...(this.properties.useListContent ? listFields : manualFields)
-            ]
-          }
+    const manualFields = [
+      PropertyPaneTextField('alertTitle', {
+        label: 'Alert Title'
+      }),
+      PropertyPaneTextField('alertDesc', {
+        label: 'Enter a Description for your alert',
+        multiline: true
+      }),
+      PropertyPaneDropdown('colorChoice', {
+        label: 'Select a Color',
+        options: [
+          { key: 'darkred', text: 'Red' },
+          { key: '#FF9933', text: 'Orange' },
+          { key: '#E2DD00', text: 'Yellow' },
+          { key: '#3B7D23', text: 'Green' },
+          { key: '#0070C0', text: 'Blue' },
+          { key: '#7030A0', text: 'Purple' },
+          { key: '#D86ECC', text: 'Pink' },
+          { key: '#000000', text: 'Black' },
+          { key: '#686868', text: 'Grey' }
         ]
-      }
-    ]
-  };
-}
+      }),
+      PropertyPaneSlider('scrollSpeed', {
+        label: 'Scroll Speed',
+        min: 1,
+        max: 20,
+        value: 10,
+        showValue: true
+      })
+    ];
+
+    const listFields = [
+      PropertyPaneDropdown('selectedList', {
+        label: 'Select a List',
+        options: this.listOptions
+      }),
+      PropertyPaneDropdown('selectedItem', {
+        label: 'Select an Item',
+        options: this.itemOptions
+      }),
+      PropertyPaneLabel('endTime', {
+        text: `End Time: ${this.properties.formattedEndTime || 'N/A'}`
+      }),
+      this.renderLabelField('alertStatus'),
+      PropertyPaneDropdown('colorChoice', {
+        label: 'Select a Color',
+        options: [
+          { key: 'darkred', text: 'Red' },
+          { key: '#FF9933', text: 'Orange' },
+          { key: '#E2DD00', text: 'Yellow' },
+          { key: '#3B7D23', text: 'Green' },
+          { key: '#0070C0', text: 'Blue' },
+          { key: '#7030A0', text: 'Purple' },
+          { key: '#D86ECC', text: 'Pink' },
+          { key: '#000000', text: 'Black' },
+          { key: '#686868', text: 'Grey' }
+        ]
+      }),
+      PropertyPaneSlider('scrollSpeed', {
+        label: 'Scroll Speed',
+        min: 1,
+        max: 20,
+        value: 10,
+        showValue: true
+      })
+    ];
+
+    return {
+      pages: [
+        {
+          groups: [
+            {
+              groupFields: [
+                ...commonFields,
+                ...(this.properties.useListContent ? listFields : manualFields)
+              ]
+            }
+          ]
+        }
+      ]
+    };
+  }
 
 }
