@@ -105,7 +105,7 @@ export default class AnnouncementBannerWebPart extends BaseClientSideWebPart<IAn
       
       // Find the first active item or default to the first item
       const currentTime = new Date();
-      let selectedItem = items.find((item: any) => {
+      const selectedItem = items.find((item: any) => {
         const endTime = new Date(item.endTime);
         return currentTime.getTime() <= endTime.getTime();
       });
